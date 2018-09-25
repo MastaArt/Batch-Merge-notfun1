@@ -22,7 +22,7 @@ ICON=#("PhysX_Main", 31)
 
 [ABOUT]
 
-Assign materials from library to objects with according names=
+Merge multiple *.max files and arrange=
 
 [TEST]
 
