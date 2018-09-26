@@ -207,7 +207,7 @@ rollout _STEP1 ""
 		selection.pivot = [0,0,0]
 		selection.pos = [0,0,0]
 		g.pos.x = (nn as float * spnDistance.value) - spnDistance.value
-		
+		selection.pivot = [0,0,0]
 		if(not cbxGroupObjects.checked) do ungroup g
 	)
 	
