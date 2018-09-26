@@ -2,7 +2,7 @@
 [INFO] 
 
 NAME = Batch Merge
-VERSION = 1.0.0
+VERSION = 1.1.0
 AUTHOR = Vasily Lukyanenko
 DEV = 3DGROUND
 CUSTOMER = Andrew Andreyuk
@@ -19,6 +19,12 @@ ICON=#("PhysX_Main", 31)
 [1.0.0]
 
 * First release =
+
+[1.1.0]
+
+* Changed: Pivot now set to [0,0,0], after that move by axis X=
++ Added: Progress Bar=
++ Added: Save settings=
 
 [ABOUT]
 
@@ -77,7 +83,7 @@ fn useSettings k v type:#get =
 	f = getThisScriptFilename() + ".ini"
 	case type of
 	(
-		#set: setIniSetting f "SETTINGS" k v
+		#set: setIniSetting f "SETTINGS" k (v as string)
 		default: getIniSetting f "SETTINGS" k
 	)
 )
@@ -125,19 +131,22 @@ rollout _STEP1 ""
 	(
 		f = #()
 		
-		imageDialog = dotNetObject "System.Windows.Forms.OpenFileDialog" 
-		imageDialog.title = "Select Pictures"
-		imageDialog.Multiselect = true
-		imageDialog.Filter = "3ds max (*.max)|*.max"
-		imageDialog.FilterIndex = 1
+		d = dotNetObject "System.Windows.Forms.OpenFileDialog" 
+		d.title = "Select Files"
+		d.Multiselect = true
+		d.Filter = "3ds max (*.max)|*.max"
+		d.FilterIndex = 1
 		
-		result = imageDialog.showDialog() 
+		v = useSettings "INITIAL_DIRECTORY" undefined		
+		if(v != "") do d.InitialDirectory = v
+		
+		result = d.showDialog() 
 		result.ToString() 
 		result.Equals result.OK 
 		result.Equals result.Cancel 
 		
-		f = imageDialog.fileNames 
-		 
+		f = d.fileNames 
+				 
 		return f
 	)
 	
@@ -207,18 +216,34 @@ rollout _STEP1 ""
 		selection.pivot = [0,0,0]
 		selection.pos = [0,0,0]
 		g.pos.x = (nn as float * spnDistance.value) - spnDistance.value
-		selection.pivot = [0,0,0]
+		--selection.pivot = [0,0,0]
 		if(not cbxGroupObjects.checked) do ungroup g
 	)
 	
+	on _STEP1 open do (
+		freezeUi()
+		
+		v = useSettings "DISTANCE" undefined
+		if(v != "") do spnDistance.value = v as float
+		
+		v = useSettings "GROUP_OBJECTS" undefined
+		if(v == "false") do cbxGroupObjects.checked = false
+	)
+	
+	on spnDistance changed v do useSettings "DISTANCE" v type: #set
+		
+	on cbxGroupObjects changed v do useSettings "GROUP_OBJECTS" v type: #set
+		
 	on btnAdd pressed do (				
 		f = getOpenMaxFiles()
-		if(f == undefined) do return false
+		if(f.count == 0) do return false
 		
 		join filesList f
 		filesList = makeUniqueArray filesList
 		
 		updateList()
+				
+		useSettings "INITIAL_DIRECTORY" (getFileNamePath f[1]) type: #set
 	)
 	
 	on btnRemove pressed do (
@@ -235,8 +260,14 @@ rollout _STEP1 ""
 		if(filesList.count == 0) do return messageBox "Please add files to list first!" title: "Error!"
 		
 		--resetMaxFile()
+		progressStart "Batch Merge..."
+		escapeEnable
+		for c in 1 to filesList.count where (doesFileExist filesList[c]) do (
+			progressUpdate (100 * c / filesList.count)
+			mergeAndProcess filesList[c] c
+		)
 		
-		for c in 1 to filesList.count where (doesFileExist filesList[c]) do mergeAndProcess filesList[c] c
+		progressEnd()
 	)
 )
 
