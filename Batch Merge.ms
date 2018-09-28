@@ -2,7 +2,7 @@
 [INFO] 
 
 NAME = Batch Merge
-VERSION = 1.1.0
+VERSION = 1.1.1
 AUTHOR = Vasily Lukyanenko
 DEV = 3DGROUND
 CUSTOMER = Andrew Andreyuk
@@ -25,6 +25,10 @@ ICON=#("PhysX_Main", 31)
 * Changed: Pivot now set to [0,0,0], after that move by axis X=
 + Added: Progress Bar=
 + Added: Save settings=
+
+[1.1.1]
+
+- BugFix: Camera blowing=
 
 [ABOUT]
 
@@ -205,20 +209,26 @@ rollout _STEP1 ""
 		updateList()
 	)
 	
+	fn ungroupRecursive s = for i in s where isGroupHead i and isValidNode i do explodeGroup i
+	
 	fn mergeAndProcess f nn = (
 		mergeMAXFile f #select #skipDups #useSceneMtlDups quiet: true
 		
 		if(selection.count == 0) do return false
 		
-		g = group selection name: (getFileNameFile f)
-		select g
-						
-		selection.pivot = [0,0,0]
-		selection.pos = [0,0,0]
-		g.pos.x = (nn as float * spnDistance.value) - spnDistance.value
-		--selection.pivot = [0,0,0]
+		ungroupRecursive selection
+		g = group selection name: (getFileNameFile f)							
+		g.pivot = [0,0,0]
+		
+		newPos = (nn as float * spnDistance.value) - spnDistance.value		
+		move g [newPos, 0, 0]		
+		
 		if(not cbxGroupObjects.checked) do ungroup g
+		
+		clearSelection()
 	)
+	
+	
 	
 	on _STEP1 open do (
 		freezeUi()
